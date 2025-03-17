@@ -13,8 +13,7 @@ import { useState } from 'react'
 function App() {
   const [publicKey, setPublicKey] = useState<bigint | null>(null)
   const [privateKey, setPrivateKey] = useState<{ p: bigint; q: bigint } | null>(null)
-  const [aliceMessage, setAliceMessage] = useState('')
-  const [bobMessage, setBobMessage] = useState('')
+  const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [processLog, setProcessLog] = useState<string[]>([])
 
@@ -25,18 +24,10 @@ function App() {
   const handleKeysGenerated = (publicKey: bigint, privateKey: { p: bigint; q: bigint }) => {
     setPublicKey(publicKey)
     setPrivateKey(privateKey)
-    addToLog(`Ключи успешно сгенерированы. Открытый ключ (n): ${publicKey}`)
-
-    // Добавляем примеры сообщений для демонстрации чата
-    setTimeout(() => {
-      handleSendMessage('Алиса', 'Привет, Боб! Как дела?')
-      setTimeout(() => {
-        handleSendMessage('Боб', 'Привет, Алиса! У меня всё хорошо, спасибо что спросила!')
-      }, 1500)
-    }, 1000)
+    addToLog(`Ключи сгенерированы. Открытый ключ (n): ${publicKey}. Закрытый ключ (p, q): ${privateKey.p}, ${privateKey.q}`)
   }
 
-  const handleSendMessage = (sender: 'Алиса' | 'Боб', content: string) => {
+  const handleSendMessage = (content: string) => {
     try {
       if (!publicKey || !privateKey) {
         console.error('Ключи не сгенерированы')
@@ -48,7 +39,7 @@ function App() {
         return
       }
 
-      addToLog(`${sender} отправляет сообщение: "${content}"`)
+      addToLog(`Отправлено сообщение: "${content}"`)
 
       // Конвертируем строку в BigInt
       const messageBigInt = stringToBigInt(content)
@@ -87,7 +78,6 @@ function App() {
       }
 
       const newMessage: Message = {
-        sender,
         original: content,
         encrypted,
         decrypted: decryptedValues,
@@ -96,11 +86,7 @@ function App() {
       }
 
       setMessages((prev) => [...prev, newMessage])
-      if (sender === 'Алиса') {
-        setAliceMessage('')
-      } else {
-        setBobMessage('')
-      }
+      setMessage('')
     } catch (err) {
       console.error(err)
     }
@@ -143,14 +129,9 @@ function App() {
           <TabsContent value='messenger'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               <div className='space-y-6'>
-                <ChatInput
-                  name='Алиса'
-                  value={aliceMessage}
-                  onChange={setAliceMessage}
-                  onSend={() => handleSendMessage('Алиса', aliceMessage)}
-                  disabled={!publicKey}
-                />
-                <ChatInput name='Боб' value={bobMessage} onChange={setBobMessage} onSend={() => handleSendMessage('Боб', bobMessage)} disabled={!publicKey} />
+                <div>
+                  <ChatInput name='Отправить сообщение' value={message} onChange={setMessage} onSend={() => handleSendMessage(message)} disabled={!publicKey} />
+                </div>
                 <MessageList messages={messages} />
               </div>
               <ProcessLog logs={processLog} />

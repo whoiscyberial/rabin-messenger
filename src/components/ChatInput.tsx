@@ -34,6 +34,7 @@ export function ChatInput({ name, value, onChange, onSend, disabled }: ChatInput
             <Send className='h-4 w-4' />
           </Button>
         </div>
+        {disabled && <span className='text-xs text-destructive'>Для начала сгенерируйте ключи</span>}
       </CardContent>
     </Card>
   )

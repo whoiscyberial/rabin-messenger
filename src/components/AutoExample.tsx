@@ -1,11 +1,13 @@
 import Logs from '@/components/Logs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { bigIntToString, decryptWithPQ, encrypt, generateKey, stringToBigInt } from '@/lib/rabin'
 import { RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 
 export function AutoExample() {
+  const [originalMessage, setOriginalMessage] = useState('Привет. Тестовое сообщение')
   const [logs, setLogs] = useState<string[]>([])
   const [running, setRunning] = useState(false)
 
@@ -28,7 +30,6 @@ export function AutoExample() {
       await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Исходное сообщение
-      const originalMessage = 'Привет'
       addLog(`\nСообщение отправителя: "${originalMessage}"`)
 
       // Конвертируем сообщение в BigInt
@@ -65,7 +66,7 @@ export function AutoExample() {
         await new Promise((resolve) => setTimeout(resolve, 300))
       }
 
-      addLog(`\nСообщение получено получателем: "${finalMessage}"`)
+      addLog(`\nСообщение расшифровано: "${finalMessage}"`)
     } catch (error) {
       addLog(`Ошибка: ${error}`)
     } finally {
@@ -77,9 +78,10 @@ export function AutoExample() {
     <Card>
       <CardHeader>
         <CardTitle>Автоматический пример</CardTitle>
-        <CardDescription>Этот пример автоматически создает ключи и отправляет 2 сообщения</CardDescription>
+        <CardDescription>Этот пример автоматически создаст ключи, зашифрует и расшифрует сообщение</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className='flex flex-col gap-4'>
+        <Input value={originalMessage} onChange={(e) => setOriginalMessage(e.target.value)} placeholder='Введите сообщение' />
         <Logs logs={logs} />
       </CardContent>
       <CardFooter>

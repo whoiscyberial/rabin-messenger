@@ -1,5 +1,4 @@
 export type Message = {
-  sender: 'Алиса' | 'Боб'
   original: string
   encrypted: bigint
   decrypted?: bigint[]
