@@ -1,15 +1,9 @@
-// Реализация криптосистемы Рабина
-
-// Константы
-const TWO = 2n
-const THREE = 3n
-const FOUR = 4n
-
 /**
  * Вычисляет (base^exponent) % modulus эффективно
  */
 export function modPow(base: bigint, exponent: bigint, modulus: bigint): bigint {
   if (modulus === 1n) return 0n
+
   let result = 1n
   base = base % modulus
   while (exponent > 0n) {
@@ -19,6 +13,7 @@ export function modPow(base: bigint, exponent: bigint, modulus: bigint): bigint 
     base = (base * base) % modulus
     exponent = exponent >> 1n
   }
+
   return result
 }
 
@@ -31,48 +26,50 @@ export function isQuadraticResidue(a: bigint, p: bigint): boolean {
 
 /**
  * Генерирует простое число Блюма (простое число p, где p ≡ 3 (mod 4))
- * @param bitLength Битовая длина генерируемого простого числа
- * @returns Простое число Блюма
+ * Упрощенная версия для лучшей читаемости
  */
 export function generateBlumPrime(bitLength: number): bigint {
-  const generateRandomPrime = (bits: number): bigint => {
-    // Простой тест на простоту
-    const isProbablePrime = (n: bigint): boolean => {
-      if (n <= 1n) return false
-      if (n <= 3n) return true
-      if (n % 2n === 0n) return false
+  // Простая проверка на простоту (тест Ферма)
+  function isProbablePrime(n: bigint): boolean {
+    if (n <= 1n) return false
+    if (n <= 3n) return true
+    if (n % 2n === 0n) return false
 
-      const a = 2n
-      return modPow(a, n - 1n, n) === 1n
-    }
-
-    let candidate: bigint
-    do {
-      // Генерируем случайное число указанной битовой длины
-      let hex = ''
-      for (let i = 0; i < Math.ceil(bits / 4); i++) {
-        hex += Math.floor(Math.random() * 16).toString(16)
-      }
-      candidate = BigInt('0x' + hex)
-      // Убеждаемся, что число нечетное
-      if (candidate % 2n === 0n) candidate += 1n
-    } while (!isProbablePrime(candidate))
-
-    return candidate
+    // Тест Ферма с основанием 2
+    return modPow(2n, n - 1n, n) === 1n
   }
 
-  let p: bigint
-  do {
-    p = generateRandomPrime(bitLength)
-  } while (p % FOUR !== THREE)
+  // Генерация случайного числа заданной битовой длины
+  function generateRandomNumber(bits: number): bigint {
+    // Создаем случайное шестнадцатеричное число
+    let hex = '0x'
+    for (let i = 0; i < Math.ceil(bits / 4); i++) {
+      hex += Math.floor(Math.random() * 16).toString(16)
+    }
 
-  return p
+    let num = BigInt(hex)
+    // Делаем число нечетным
+    if (num % 2n === 0n) num += 1n
+    return num
+  }
+
+  // Ищем простое число, которое при делении на 4 дает остаток 3
+  let prime: bigint
+  do {
+    // Генерируем случайное число и проверяем его на простоту
+    let candidate: bigint
+    do {
+      candidate = generateRandomNumber(bitLength)
+    } while (!isProbablePrime(candidate))
+
+    prime = candidate
+  } while (prime % 4n !== 3n)
+
+  return prime
 }
 
 /**
  * Генерирует пару ключей для криптосистемы Рабина
- * @param bitLength Битовая длина ключа (будет разделена между p и q)
- * @returns Массив с [n, p, q]
  */
 export function generateKey(bitLength: number = 512): [bigint, bigint, bigint] {
   const p = generateBlumPrime(bitLength / 2)
@@ -83,8 +80,6 @@ export function generateKey(bitLength: number = 512): [bigint, bigint, bigint] {
 
 /**
  * Генерирует пару ключей для криптосистемы Рабина (формат объекта)
- * @param bitLength Битовая длина ключа (будет разделена между p и q)
- * @returns Открытый и закрытый ключи в виде объекта
  */
 export function generateKeyPair(bitLength: number = 512): {
   publicKey: bigint
@@ -98,7 +93,7 @@ export function generateKeyPair(bitLength: number = 512): {
  * Создает пару ключей из существующих значений p и q
  */
 export function generateKeys(p: bigint, q: bigint) {
-  if (p % FOUR !== THREE || q % FOUR !== THREE) {
+  if (p % 4n !== 3n || q % 4n !== 3n) {
     throw new Error('Оба числа p и q должны быть сравнимы с 3 по модулю 4')
   }
   const n = p * q
@@ -107,70 +102,80 @@ export function generateKeys(p: bigint, q: bigint) {
 
 /**
  * Шифрует сообщение с использованием криптосистемы Рабина
- * @param message Сообщение для шифрования
- * @param publicKey Открытый ключ (n)
- * @returns Зашифрованное сообщение
+ * Упрощенная версия - просто возводим в квадрат по модулю n
  */
 export function encrypt(message: bigint, publicKey: bigint): bigint {
-  return modPow(message, TWO, publicKey)
+  return (message * message) % publicKey
 }
 
 /**
  * Расширенный алгоритм Евклида для нахождения НОД и коэффициентов Безу
- * @returns [gcd, x, y], где gcd - наибольший общий делитель, а x, y - коэффициенты Безу
+ * Упрощенная версия с более понятными именами переменных
  */
 export function extendedGCD(a: bigint, b: bigint): [bigint, bigint, bigint] {
-  let old_r = a
-  let r = b
-  let old_s = 1n
-  let s = 0n
-  let old_t = 0n
-  let t = 1n
+  let remainder_old = a
+  let remainder_new = b
+  let bezout_a_old = 1n
+  let bezout_a_new = 0n
+  let bezout_b_old = 0n
+  let bezout_b_new = 1n
 
-  while (r !== 0n) {
-    const quotient = old_r / r
-    ;[old_r, r] = [r, old_r - quotient * r]
-    ;[old_s, s] = [s, old_s - quotient * s]
-    ;[old_t, t] = [t, old_t - quotient * t]
+  while (remainder_new !== 0n) {
+    const quotient = remainder_old / remainder_new
+
+    // Обновляем остатки
+    const temp_remainder = remainder_new
+    remainder_new = remainder_old - quotient * remainder_new
+    remainder_old = temp_remainder
+
+    // Обновляем коэффициенты Безу для a
+    const temp_bezout_a = bezout_a_new
+    bezout_a_new = bezout_a_old - quotient * bezout_a_new
+    bezout_a_old = temp_bezout_a
+
+    // Обновляем коэффициенты Безу для b
+    const temp_bezout_b = bezout_b_new
+    bezout_b_new = bezout_b_old - quotient * bezout_b_new
+    bezout_b_old = temp_bezout_b
   }
 
-  return [old_r, old_s, old_t] // [gcd, x, y]
+  return [remainder_old, bezout_a_old, bezout_b_old] // [gcd, x, y]
 }
 
 /**
  * Расшифровывает шифротекст с использованием криптосистемы Рабина
- * @param ciphertext Зашифрованное сообщение
- * @param p Первый простой множитель
- * @param q Второй простой множитель
- * @returns Массив из четырех возможных открытых текстов
+ * Упрощенная версия с более понятными именами переменных
  */
 export function decryptWithPQ(ciphertext: bigint, p: bigint, q: bigint): bigint[] {
   const n = p * q
 
-  // Вычисляем p1, p2, q1, q2 как в Java-примере
-  const p1 = modPow(ciphertext, (p + 1n) / FOUR, p)
-  const p2 = p - p1
-  const q1 = modPow(ciphertext, (q + 1n) / FOUR, q)
-  const q2 = q - q1
+  // Вычисляем квадратные корни по модулю p и q
+  const mp = (p + 1n) / 4n // Показатель степени для p
+  const mq = (q + 1n) / 4n // Показатель степени для q
 
-  // Получаем коэффициенты Безу
+  const root_p_1 = modPow(ciphertext, mp, p)
+  const root_p_2 = p - root_p_1
+  const root_q_1 = modPow(ciphertext, mq, q)
+  const root_q_2 = q - root_q_1
+
+  // Получаем коэффициенты Безу: yp*p + yq*q = 1
   const [, yp, yq] = extendedGCD(p, q)
 
-  // Вычисляем четыре возможных открытых текста
-  const d1 = (yp * p * q1 + yq * q * p1) % n
-  const d2 = (yp * p * q2 + yq * q * p1) % n
-  const d3 = (yp * p * q1 + yq * q * p2) % n
-  const d4 = (yp * p * q2 + yq * q * p2) % n
+  // Комбинируем корни, используя Китайскую теорему об остатках
+  // Формула: (yp * p * root_q + yq * q * root_p) % n
+  const plaintext1 = (yp * p * root_q_1 + yq * q * root_p_1) % n
+  const plaintext2 = (yp * p * root_q_2 + yq * q * root_p_1) % n
+  const plaintext3 = (yp * p * root_q_1 + yq * q * root_p_2) % n
+  const plaintext4 = (yp * p * root_q_2 + yq * q * root_p_2) % n
 
   // Убеждаемся, что все значения положительные
-  return [d1 < 0n ? d1 + n : d1, d2 < 0n ? d2 + n : d2, d3 < 0n ? d3 + n : d3, d4 < 0n ? d4 + n : d4]
+  const makePositive = (x: bigint) => (x < 0n ? x + n : x)
+
+  return [makePositive(plaintext1), makePositive(plaintext2), makePositive(plaintext3), makePositive(plaintext4)]
 }
 
 /**
  * Расшифровывает шифротекст с использованием криптосистемы Рабина (формат объекта)
- * @param ciphertext Зашифрованное сообщение
- * @param privateKey Закрытый ключ (p и q)
- * @returns Массив из четырех возможных открытых текстов
  */
 export function decrypt(ciphertext: bigint, privateKey: { p: bigint; q: bigint }): bigint[] {
   return decryptWithPQ(ciphertext, privateKey.p, privateKey.q)
@@ -182,10 +187,13 @@ export function decrypt(ciphertext: bigint, privateKey: { p: bigint; q: bigint }
 export function stringToBigInt(str: string): bigint {
   const encoder = new TextEncoder()
   const bytes = encoder.encode(str)
+
+  // Преобразуем байты в шестнадцатеричную строку
   let hex = '0x'
   for (const byte of bytes) {
     hex += byte.toString(16).padStart(2, '0')
   }
+
   return BigInt(hex)
 }
 
@@ -193,106 +201,21 @@ export function stringToBigInt(str: string): bigint {
  * Вспомогательная функция для преобразования BigInt в строку
  */
 export function bigIntToString(bigint: bigint): string {
-  const hex = bigint.toString(16)
-  // Обеспечиваем четную длину
-  const paddedHex = hex.length % 2 ? '0' + hex : hex
+  // Преобразуем BigInt в шестнадцатеричную строку
+  let hex = bigint.toString(16)
 
-  const bytes = new Uint8Array(paddedHex.length / 2)
-  for (let i = 0; i < paddedHex.length; i += 2) {
-    bytes[i / 2] = parseInt(paddedHex.substring(i, i + 2), 16)
+  // Добавляем ведущий ноль, если длина нечетная
+  if (hex.length % 2 !== 0) {
+    hex = '0' + hex
   }
 
+  // Преобразуем шестнадцатеричную строку в массив байтов
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
+  }
+
+  // Преобразуем байты в строку
   const decoder = new TextDecoder()
   return decoder.decode(bytes)
-}
-
-/**
- * Пример использования криптосистемы Рабина в стиле Java
- */
-export function rabinExampleJavaStyle(): void {
-  // Генерация пары ключей
-  console.log('Генерация пары ключей...')
-  const [n, p, q] = generateKey(512)
-  console.log(`Открытый ключ (n): ${n}`)
-  console.log(`Закрытый ключ (p): ${p}`)
-  console.log(`Закрытый ключ (q): ${q}`)
-
-  // Исходное сообщение
-  const originalMessage = 'Привет'
-  console.log(`\nСообщение отправителя: "${originalMessage}"`)
-
-  // Преобразуем сообщение в BigInt
-  const messageBigInt = stringToBigInt(originalMessage)
-
-  // Шифруем сообщение
-  const encryptedMessage = encrypt(messageBigInt, n)
-  console.log(`Зашифрованное сообщение: ${encryptedMessage}`)
-
-  // Расшифровываем сообщение
-  const possibleMessages = decryptWithPQ(encryptedMessage, p, q)
-
-  let finalMessage = null
-
-  for (const value of possibleMessages) {
-    try {
-      const decryptedString = bigIntToString(value)
-      if (decryptedString === originalMessage) {
-        finalMessage = decryptedString
-        break
-      }
-    } catch {
-      // Недопустимая строка UTF-8
-    }
-  }
-
-  console.log(`Сообщение получено получателем: ${finalMessage}`)
-}
-
-/**
- * Пример использования криптосистемы Рабина
- */
-export function rabinExample(): void {
-  // Генерация пары ключей
-  console.log('Генерация пары ключей...')
-  const { publicKey, privateKey } = generateKeyPair(512)
-  console.log(`Открытый ключ (n): ${publicKey}`)
-  console.log(`Закрытый ключ (p): ${privateKey.p}`)
-  console.log(`Закрытый ключ (q): ${privateKey.q}`)
-
-  // Исходное сообщение
-  const originalMessage = 'Привет'
-  console.log(`\nИсходное сообщение: "${originalMessage}"`)
-
-  // Преобразуем сообщение в BigInt
-  const messageBigInt = stringToBigInt(originalMessage)
-  console.log(`Сообщение в виде BigInt: ${messageBigInt}`)
-
-  // Шифруем сообщение
-  const encryptedMessage = encrypt(messageBigInt, publicKey)
-  console.log(`\nЗашифрованное сообщение: ${encryptedMessage}`)
-
-  // Расшифровываем сообщение
-  console.log('\nРасшифровка...')
-  const possibleMessages = decrypt(encryptedMessage, privateKey)
-
-  console.log('Возможные расшифрованные значения:')
-  let foundOriginal = false
-
-  for (let i = 0; i < possibleMessages.length; i++) {
-    try {
-      const decryptedString = bigIntToString(possibleMessages[i])
-      console.log(`Вариант ${i + 1}: ${possibleMessages[i]} -> "${decryptedString}"`)
-
-      if (decryptedString === originalMessage) {
-        console.log(`✓ Вариант ${i + 1} соответствует исходному сообщению!`)
-        foundOriginal = true
-      }
-    } catch {
-      console.log(`Вариант ${i + 1}: ${possibleMessages[i]} -> [Недопустимая строка UTF-8]`)
-    }
-  }
-
-  if (!foundOriginal) {
-    console.log('❌ Исходное сообщение не найдено среди вариантов расшифровки.')
-  }
 }
