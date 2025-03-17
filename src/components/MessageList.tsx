@@ -17,9 +17,9 @@ export function MessageList({ messages }: MessageListProps) {
       <CardContent>
         <ScrollArea className='h-[400px]'>
           {messages.map((msg, idx) => (
-            <div key={idx} className={`mb-4 p-3 rounded-lg ${msg.sender === 'Алиса' ? 'bg-primary/10' : 'bg-secondary/10'}`}>
+            <div key={idx} className={`mb-4 p-3 rounded-lg`}>
               <div className='flex items-center justify-between mb-1'>
-                <span className='font-bold'>{msg.sender}</span>
+                <span className='font-bold'>Сообщение {idx + 1}</span>
                 <span className='text-xs opacity-70'>{msg.timestamp.toLocaleTimeString()}</span>
               </div>
 
